@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GREEN-API Demo</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f4f6f8;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: #fff;
+      border-bottom: 1px solid #e0e0e0;
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      height: 56px;
+    }
+
+    .logo {
+      font-size: 20px;
+      font-weight: 700;
+      color: #25D366;
+      letter-spacing: -0.5px;
+    }
+
+    .logo span { color: #333; }
+
+    main {
+      flex: 1;
+      display: flex;
+      gap: 32px;
+      padding: 40px 60px;
+      max-width: 1100px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      width: 320px;
+      flex-shrink: 0;
+    }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: -8px;
+    }
+
+    input[type="text"], textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid #d0d0d0;
+      border-radius: 6px;
+      font-size: 14px;
+      color: #333;
+      background: #fff;
+      transition: border-color 0.2s;
+      outline: none;
+    }
+
+    input[type="text"]:focus, textarea:focus {
+      border-color: #25D366;
+      box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.12);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 70px;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #e8e8e8;
+      margin: 4px 0;
+    }
+
+    button {
+      width: 100%;
+      padding: 11px 16px;
+      background: #fff;
+      border: 1px solid #d0d0d0;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #333;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+
+    button:hover {
+      background: #25D366;
+      border-color: #25D366;
+      color: #fff;
+    }
+
+    button:active {
+      background: #1ebe5d;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .response-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .response-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #555;
+      font-style: italic;
+    }
+
+    #response {
+      flex: 1;
+      width: 100%;
+      min-height: 480px;
+      padding: 14px 16px;
+      border: 1px solid #d0d0d0;
+      border-radius: 6px;
+      background: #fafafa;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      color: #333;
+      resize: none;
+      outline: none;
+    }
+
+    .status-ok  { color: #25D366; }
+    .status-err { color: #e53935; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">GREEN<span>-API</span></div>
+  <span style="color:#bbb; font-size:13px;">WhatsApp API Demo</span>
+</header>
+
+<main>
+  <div class="controls">
+
+    <span class="section-label">Подключение</span>
+    <input type="text" id="idInstance"       placeholder="idInstance"       />
+    <input type="text" id="apiTokenInstance" placeholder="ApiTokenInstance" />
+
+    <hr class="divider" />
+
+    <button onclick="callGetSettings()">getSettings</button>
+    <button onclick="callGetStateInstance()">getStateInstance</button>
+
+    <hr class="divider" />
+
+    <span class="section-label">sendMessage</span>
+    <input type="text" id="phoneMessage" placeholder="7777234567" />
+    <textarea id="message" placeholder="Hello World!"></textarea>
+    <button onclick="callSendMessage()">sendMessage</button>
+
+    <hr class="divider" />
+
+    <span class="section-label">sendFileByUrl</span>
+    <input type="text" id="phoneFile" placeholder="7777234567" />
+    <input type="text" id="fileUrl"   placeholder="https://my.site.com/img/horse.png" />
+    <button onclick="callSendFileByUrl()">sendFileByUrl</button>
+
+  </div>
+
+  <div class="response-panel">
+    <div class="response-label">Ответ:</div>
+    <textarea id="response" readonly placeholder="Ответ метода появится здесь..."></textarea>
+  </div>
+</main>
+
+<script>
+  const BASE = 'https://api.green-api.com';
+
+  function getCredentials() {
+    const id    = document.getElementById('idInstance').value.trim();
+    const token = document.getElementById('apiTokenInstance').value.trim();
+    if (!id || !token) {
+      showResponse({ error: 'Заполните idInstance и ApiTokenInstance' });
+      return null;
+    }
+    return { id, token };
+  }
+
+  function showResponse(data) {
+    document.getElementById('response').value =
+      JSON.stringify(data, null, 2);
+  }
+
+  async function request(url, options = {}) {
+    try {
+      const res = await fetch(url, options);
+      const data = await res.json();
+      showResponse(data);
+    } catch (err) {
+      showResponse({ error: err.message });
+    }
+  }
+
+  function callGetSettings() {
+    const c = getCredentials(); if (!c) return;
+    request(`${BASE}/waInstance${c.id}/getSettings/${c.token}`);
+  }
+
+  function callGetStateInstance() {
+    const c = getCredentials(); if (!c) return;
+    request(`${BASE}/waInstance${c.id}/getStateInstance/${c.token}`);
+  }
+
+  function callSendMessage() {
+    const c = getCredentials(); if (!c) return;
+    const phone   = document.getElementById('phoneMessage').value.trim();
+    const message = document.getElementById('message').value.trim();
+    if (!phone || !message) { showResponse({ error: 'Укажите номер телефона и текст сообщения' }); return; }
+    request(`${BASE}/waInstance${c.id}/sendMessage/${c.token}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chatId: `${phone}@c.us`, message })
+    });
+  }
+
+  function callSendFileByUrl() {
+    const c = getCredentials(); if (!c) return;
+    const phone  = document.getElementById('phoneFile').value.trim();
+    const urlFile = document.getElementById('fileUrl').value.trim();
+    if (!phone || !urlFile) { showResponse({ error: 'Укажите номер телефона и URL файла' }); return; }
+    const fileName = urlFile.split('/').pop() || 'file';
+    request(`${BASE}/waInstance${c.id}/sendFileByUrl/${c.token}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chatId: `${phone}@c.us`, urlFile, fileName })
+    });
+  }
+</script>
+
+</body>
+</html>
